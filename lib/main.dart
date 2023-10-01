@@ -1,6 +1,55 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
-void main() => runApp(TodoApp());
+class EditPage extends StatefulWidget {
+  final String originalTodo;
+
+  EditPage({required this.originalTodo});
+
+  @override
+  _EditPageState createState() => _EditPageState();
+}
+
+class _EditPageState extends State<EditPage> {
+  late TextEditingController _controller;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = TextEditingController(text: widget.originalTodo);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Edit task'),
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(8.0),
+        child: TextField(
+          onChanged: (text) {
+            // No need to call setState here as Flutter
+            // automatically updates the TextField
+          },
+          controller: _controller,
+        ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          print(
+              "EditPage FloatingActionButton pressed: newTodo = ${_controller.text}");
+          Navigator.of(context).pop(_controller.text);
+        },
+        child: Icon(Icons.done),
+      ),
+    );
+  }
+}
+
+void main() {
+  runApp(TodoApp());
+}
 
 class TodoApp extends StatelessWidget {
   @override
@@ -14,10 +63,10 @@ class TodoApp extends StatelessWidget {
 
 class TodoList extends StatefulWidget {
   @override
-  createState() => TodoListState();
+  createState() => _TodoListState();
 }
 
-class TodoListState extends State<TodoList> {
+class _TodoListState extends State<TodoList> {
   List<String> _todoItems = [];
 
   void _addTodoItem(String task) {
@@ -30,116 +79,58 @@ class TodoListState extends State<TodoList> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: Text('Todo List')),
-      body: _buildTodoList(),
+      body: ListView.builder(
+        itemCount: _todoItems.length,
+        itemBuilder: (context, index) {
+          return ListTile(
+            title: Text(_todoItems[index]),
+            trailing: IconButton(
+              icon: Icon(Icons.edit),
+              onPressed: () {
+                _navigateToEditPage(context, index);
+              },
+            ),
+          );
+        },
+      ),
       floatingActionButton: FloatingActionButton(
-          onPressed: _pushAddTodoScreen,
-          tooltip: 'Add task',
-          child: Icon(Icons.add)),
+        onPressed: _pushAddTodoScreen,
+        tooltip: 'Add task',
+        child: Icon(Icons.add),
+      ),
     );
-  }
-
-  Widget _buildTodoList() {
-    return ListView.builder(
-      itemBuilder: (context, index) {
-        if (index < _todoItems.length) {
-          return _buildTodoItem(_todoItems[index]);
-        }
-      },
-    );
-  }
-
-  Widget _buildTodoItem(String todoText) {
-    return ListTile(title: Text(todoText));
   }
 
   void _pushAddTodoScreen() {
     Navigator.of(context).push(MaterialPageRoute(builder: (context) {
       return Scaffold(
-        appBar: AppBar(title: Text('Add a new task')),
+        appBar: AppBar(
+          title: Text('Add a new task'),
+        ),
         body: TextField(
           autofocus: true,
           onSubmitted: (val) {
             _addTodoItem(val);
+            // 元のページに戻る機能
             Navigator.pop(context);
           },
           decoration: InputDecoration(
-              hintText: 'Enter something to do...',
-              contentPadding: EdgeInsets.all(16.0)),
+            hintText: 'Enter something to do...',
+            contentPadding: EdgeInsets.all(16.0),
+          ),
         ),
       );
     }));
   }
-}
 
-class MyWidget extends StatefulWidget {
-  final String title;
-  const MyWidget({Key? key, required this.title}) : super(key: key);
-
-  @override
-  MyWidgetState createState() => MyWidgetState();
-}
-
-class MyWidgetState extends State<MyWidget> {
-  int _counter = 0;
-
-  void _incrementCounter() {
-    setState(() {
-      _counter++;
-    });
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
-    return Scaffold(
-      appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
-      ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text(
-              'You have pushed the button this many times:',
-            ),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
-    );
+  void _navigateToEditPage(BuildContext context, int index) async {
+    String? editedTodo =
+        await Navigator.of(context).push(MaterialPageRoute(builder: (context) {
+      return EditPage(originalTodo: _todoItems[index]);
+    }));
+    print("_navigateToEditPage: editedTodo = $editedTodo");
+    if (editedTodo != null) {
+      setState(() => _todoItems[index] = editedTodo);
+    }
   }
 }
